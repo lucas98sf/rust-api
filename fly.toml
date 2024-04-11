@@ -1,13 +1,17 @@
-# fly.toml app configuration file generated for weathered-forest-2714 on 2024-04-07T13:32:26-03:00
+# fly.toml app configuration file generated for snowy-dust-8013 on 2024-04-10T21:26:25-03:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'weathered-forest-2714'
+app = 'snowy-dust-8013'
 primary_region = 'gig'
 
 [build]
 dockerfile = './Dockerfile'
+
+[mounts]
+destination = "/pb/pb_data"
+source = "pb_data"
 
 [http_service]
 internal_port = 8080
@@ -16,12 +20,12 @@ auto_stop_machines = true
 auto_start_machines = true
 min_machines_running = 0
 processes = ['app']
+[http_service.concurrency]
+type = 'requests'
+hard_limit = 550
+soft_limit = 500
 
 [[vm]]
 memory = '1gb'
 cpu_kind = 'shared'
 cpus = 1
-
-[mounts]
-source = "data"
-destination = "/data"

@@ -1,9 +1,12 @@
 #[macro_use]
 extern crate rocket;
 
+use rocket::fs::relative;
+use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::{self, Responder};
 use rocket::Request;
+use rocket_dyn_templates::Template;
 use thiserror::Error;
 
 mod clients;
@@ -11,7 +14,10 @@ mod routes;
 
 #[launch]
 pub fn rocket() -> _ {
-    rocket::build().mount("/", routes::routes())
+    rocket::build()
+        .attach(Template::fairing())
+        .mount("/", routes::routes())
+        .mount("/css", FileServer::from(relative!("/templates/css")))
 }
 
 #[derive(Error, Debug)]

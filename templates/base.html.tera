@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/output.css" rel="stylesheet">
+    <title>
+        {% block title %}
+        my favorites
+        {% endblock %}
+    </title>
+    <script src="https://unpkg.com/htmx.org@1.9.11">
+    </script>
+</head>
+
+<body>
+    <header class="py-10 space-y-2">
+        <div class="mx-auto max-w-6xl flex items-center justify-center space-x-4">
+            <span class="text-lg font-semibold text-purple-800">my favorites</span>
+        </div>
+    </header>
+    <div class="flex flex-col h-screen">
+        <main class="flex-1 flex items-center justify-center">
+            {% block content %}
+
+            {% endblock %}
+        </main>
+    </div>
+    </main>
+</body>
+<footer class="pb-10 bg-gray-100 dark:bg-gray-800">
+    <div class="mx-auto max-w-6xl text-center text-sm text-gray-500 space-y-2 dark:text-gray-400">
+    </div>
+</footer>
+
+</html>

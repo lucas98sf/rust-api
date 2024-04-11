@@ -4,16 +4,23 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
 };
-use reqwest::header::{ACCEPT, AUTHORIZATION};
+use reqwest::header::CONTENT_TYPE;
 use rocket::http::{Cookie, CookieJar};
 use rocket::response::Redirect;
-use std::env; // Add missing import
+use rocket_dyn_templates::{context, Template};
+use serde_json::json;
+use std::env;
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![get_auth_url, callback, login]
+    routes![index, get_auth_url, callback, login]
 }
 
 #[get("/")]
+async fn index() -> Template {
+    Template::render("index", context! {})
+}
+
+#[get("/spotify")]
 async fn get_auth_url(jar: &CookieJar<'_>) -> Result<Redirect, Error> {
     let (pkce_code_challenge, pkce_code_verifier) = PkceCodeChallenge::new_random_sha256();
     let code_verifier = &pkce_code_verifier.secret();
@@ -77,29 +84,28 @@ async fn callback(code: String, state: String, jar: &CookieJar<'_>) -> Result<Su
 async fn login() -> Result<Success, Error> {
     dotenv().expect(".env file not found");
     let db_url = env::var("DB_URL").expect("DB_URL must be set");
+    let db_login = env::var("DB_LOGIN").expect("DB_LOGIN must be set");
+    let db_password = env::var("DB_PASSWORD").expect("DB_PASSWORD must be set");
     let client = reqwest::Client::new();
 
     let res = client
-        .get(format!("{db_url}/key/user"))
-        .header(ACCEPT, "application/json")
-        .header(
-            AUTHORIZATION,
-            clients::get_auth0_access_token()
-                .await?
-                .secret()
-                .to_string(),
+        .post(format!("{db_url}/api/admins/auth-with-password"))
+        .header(CONTENT_TYPE, "application/json")
+        .body(
+            json!({
+                "identity": db_login,
+                "password": db_password
+            })
+            .to_string(),
         )
-        .header("NS", "test")
-        .header("DB", "test")
         .send()
         .await?;
 
-    let status = res.status();
+    println!("{:?}", res);
+
+    // let status = res.status();
     let res_body = res.text().await?;
     let res_json: serde_json::Value = serde_json::from_str(&res_body)?;
-
-    println!("Response status: {}", status);
-    println!("Response json: {}", res_json);
 
     Ok(Success(res_json.to_string()))
 }
