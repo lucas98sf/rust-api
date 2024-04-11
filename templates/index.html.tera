@@ -10,10 +10,10 @@
         <div class="space-y-2">
             <input
                 class="focus:shadow-soft-primary-outline text-sm leading-5.6 ease-soft block w-full appearance-none rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding px-3 py-2 font-normal text-gray-700 outline-none transition-all placeholder:text-gray-500 focus:border-fuchsia-300 focus:outline-none"
-                id="email" placeholder="Email" required type="email" />
+                name="email" placeholder="Email" required type="email" />
             <input
                 class="focus:shadow-soft-primary-outline text-sm leading-5.6 ease-soft block w-full appearance-none rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding px-3 py-2 font-normal text-gray-700 outline-none transition-all placeholder:text-gray-500 focus:border-fuchsia-300 focus:outline-none"
-                id="password" placeholder="Password" required type="password" />
+                name="password" placeholder="Password" required type="password" />
         </div>
         <div class="flex flex-col">
             <button

@@ -5,6 +5,7 @@ use oauth2::{
     AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
 };
 use reqwest::header::CONTENT_TYPE;
+use rocket::form::Form;
 use rocket::http::{Cookie, CookieJar};
 use rocket::response::Redirect;
 use rocket_dyn_templates::{context, Template};
@@ -80,21 +81,25 @@ async fn callback(code: String, state: String, jar: &CookieJar<'_>) -> Result<Su
     )))
 }
 
-#[get("/login")]
-async fn login() -> Result<Success, Error> {
+#[derive(FromForm)]
+struct User {
+    email: String,
+    password: String,
+}
+
+#[post("/login", data = "<user>")]
+async fn login(user: Form<User>) -> Result<Success, Error> {
     dotenv().expect(".env file not found");
     let db_url = env::var("DB_URL").expect("DB_URL must be set");
-    let db_login = env::var("DB_LOGIN").expect("DB_LOGIN must be set");
-    let db_password = env::var("DB_PASSWORD").expect("DB_PASSWORD must be set");
     let client = reqwest::Client::new();
 
     let res = client
-        .post(format!("{db_url}/api/admins/auth-with-password"))
+        .post(format!("{db_url}/api/collections/users/auth-with-password"))
         .header(CONTENT_TYPE, "application/json")
         .body(
             json!({
-                "identity": db_login,
-                "password": db_password
+                "identity": user.email,
+                "password": user.password
             })
             .to_string(),
         )
