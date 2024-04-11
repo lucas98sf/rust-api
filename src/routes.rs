@@ -4,21 +4,28 @@ use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthorizationCode, CsrfToken, PkceCodeChallenge, PkceCodeVerifier, Scope, TokenResponse,
 };
-use reqwest::header::CONTENT_TYPE;
+use reqwest::header::{HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use rocket::form::Form;
-use rocket::http::{Cookie, CookieJar};
+use rocket::http::{Cookie, CookieJar, Status};
+use rocket::request::{FromRequest, Outcome, Request};
 use rocket::response::Redirect;
 use rocket_dyn_templates::{context, Template};
 use serde_json::json;
 use std::env;
 
 pub fn routes() -> Vec<rocket::Route> {
-    routes![index, get_auth_url, callback, login]
+    routes![index, get_auth_url, callback, login, login_with_token]
 }
 
 #[get("/")]
 async fn index() -> Template {
-    Template::render("index", context! {})
+    dotenv().expect(".env file not found");
+    Template::render(
+        "index",
+        context! {
+            db_url: env::var("DB_URL").expect("DB_URL must be set").to_string(),
+        },
+    )
 }
 
 #[get("/spotify")]
@@ -52,13 +59,13 @@ async fn get_auth_url(jar: &CookieJar<'_>) -> Result<Redirect, Error> {
 #[get("/callback?<code>&<state>")]
 async fn callback(code: String, state: String, jar: &CookieJar<'_>) -> Result<Success, Error> {
     let code_verifier = jar
-        .get_pending("code_verifier")
+        .get_private("code_verifier")
         .expect("code_verifier cookie not found")
         .value()
         .to_string();
 
     let cookie_state = jar
-        .get_pending("state")
+        .get_private("state")
         .expect("state cookie not found")
         .value()
         .to_string();
@@ -81,14 +88,8 @@ async fn callback(code: String, state: String, jar: &CookieJar<'_>) -> Result<Su
     )))
 }
 
-#[derive(FromForm)]
-struct User {
-    email: String,
-    password: String,
-}
-
 #[post("/login", data = "<user>")]
-async fn login(user: Form<User>) -> Result<Success, Error> {
+async fn login(user: Form<User>, jar: &CookieJar<'_>) -> Result<Success, Error> {
     dotenv().expect(".env file not found");
     let db_url = env::var("DB_URL").expect("DB_URL must be set");
     let client = reqwest::Client::new();
@@ -112,5 +113,82 @@ async fn login(user: Form<User>) -> Result<Success, Error> {
     let res_body = res.text().await?;
     let res_json: serde_json::Value = serde_json::from_str(&res_body)?;
 
-    Ok(Success(res_json.to_string()))
+    if res_json["token"].as_str().unwrap() != "" {
+        jar.add_private(
+            Cookie::build(("token", res_json["token"].to_string()))
+                .same_site(rocket::http::SameSite::Lax),
+        );
+        Ok(Success(res_json.to_string()))
+    } else {
+        return Ok(Success("Invalid token".to_string()));
+    }
+}
+
+#[derive(FromForm)]
+struct User {
+    email: String,
+    password: String,
+}
+
+#[get("/login")]
+async fn login_with_token(token: Token<'_>, jar: &CookieJar<'_>) -> Result<Success, Error> {
+    dotenv().expect(".env file not found");
+    let db_url = env::var("DB_URL").expect("DB_URL must be set");
+    let client = reqwest::Client::new();
+
+    match token {
+        Token(token) => {
+            println!("Token: {}", token);
+
+            let res = client
+                .post(format!("{db_url}/api/collections/users/auth-refresh"))
+                .header(
+                    AUTHORIZATION,
+                    TryInto::<HeaderValue>::try_into(token).unwrap(),
+                )
+                .send()
+                .await?;
+
+            let res_body = res.text().await?;
+            let res_json: serde_json::Value = serde_json::from_str(&res_body)?;
+
+            if res_json["token"].as_str().unwrap() != "" {
+                jar.add_private(
+                    Cookie::build(("token", res_json["token"].to_string()))
+                        .same_site(rocket::http::SameSite::Lax),
+                );
+                return Ok(Success(res_json.to_string()));
+            } else {
+                return Ok(Success("Invalid token".to_string()));
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Token<'r>(&'r str);
+
+#[derive(Debug)]
+enum TokenError {
+    Missing,
+    Invalid,
+}
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Token<'r> {
+    type Error = TokenError;
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        /// Returns true if `key` is a valid API key string.
+        fn is_valid(key: &str) -> bool {
+            // key == "valid_api_key"
+            true
+        }
+
+        match req.headers().get_one("Authorization") {
+            None => Outcome::Error((Status::BadRequest, TokenError::Missing)),
+            Some(key) if is_valid(key) => Outcome::Success(Token(key)),
+            Some(_) => Outcome::Error((Status::BadRequest, TokenError::Invalid)),
+        }
+    }
 }
