@@ -1,0 +1,42 @@
+{% extends 'base' %}
+
+{% block content %}
+
+<div id="login" class="mx-4 space-y-6">
+    <form autoComplete="off" class="space-y-4" hx-post="/login">
+        <div class="space-y-2">
+            <input
+                class="focus:shadow-soft-primary-outline text-sm leading-5.6 ease-soft block w-full appearance-none rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding px-3 py-2 font-normal text-gray-700 outline-none transition-all placeholder:text-gray-500 focus:border-fuchsia-300 focus:outline-none"
+                name="email" placeholder="email" required type="email" />
+            <input
+                class="focus:shadow-soft-primary-outline text-sm leading-5.6 ease-soft block w-full appearance-none rounded-lg border border-solid border-gray-300 bg-white bg-clip-padding px-3 py-2 font-normal text-gray-700 outline-none transition-all placeholder:text-gray-500 focus:border-fuchsia-300 focus:outline-none"
+                name="password" placeholder="password" required type="password" />
+        </div>
+        <div class="flex flex-col">
+            <button
+                class="inline-block px-6 py-3 mb-4 font-bold text-center text-white align-middle transition-all rounded-lg cursor-pointer bg-purple-700 leading-pro text-xs ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 hover:scale-102 active:opacity-85 hover:shadow-soft-xs"
+                type="submit">
+                login
+            </button>
+            <button
+                class="inline-block px-6 py-3 mb-4 font-bold text-center text-white align-middle transition-all rounded-lg cursor-pointer bg-purple-700 leading-pro text-xs ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 hover:scale-102 active:opacity-85 hover:shadow-soft-xs"
+                hx-get="/signup" hx-target="body">
+                create account
+            </button>
+            <button
+                class="inline-block px-6 py-3 mb-4 font-bold text-center text-white align-middle transition-all rounded-lg cursor-pointer bg-purple-700 leading-pro text-xs ease-soft-in tracking-tight-soft shadow-soft-md bg-150 bg-x-25 hover:scale-102 active:opacity-85 hover:shadow-soft-xs"
+                id="google-auth">
+                login with google
+            </button>
+        </div>
+    </form>
+    <script>
+        document.querySelector('#google-auth').addEventListener('click', async (e) => {
+            e.preventDefault()
+            const authData = await pb.collection('users').authWithOAuth2({ provider: 'google' });
+            htmx.ajax('GET', '/google-login', { headers: { 'Authorization': `Bearer ${authData.token}` } })
+        })
+    </script>
+</div>
+
+{% endblock %}

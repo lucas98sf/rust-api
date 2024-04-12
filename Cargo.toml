@@ -24,4 +24,5 @@ cargo-cmd = "0.3.1"
 cargo-watch = "8.5.2"
 
 [package.metadata.commands]
+# todo: find a way to run tailwindcss in parallel with the server
 watch = "cargo watch -c -x run -s \"npx tailwindcss -i ./templates/css/input.css -o ./templates/css/output.css --watch\""

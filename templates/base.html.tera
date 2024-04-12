@@ -10,7 +10,12 @@
         my favorites
         {% endblock %}
     </title>
-    <script src="https://unpkg.com/htmx.org@1.9.11">
+    <script src="https://unpkg.com/htmx.org@1.9.11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pocketbase/0.21.1/pocketbase.umd.js"></script>
+    <script>
+        const dbUrl = '{{ db_url }}'.replaceAll('&#x2F;', '/')
+        const pb = new PocketBase(dbUrl)
+        htmx.config.defaultSwapStyle = 'outerHTML'
     </script>
 </head>
 
@@ -20,18 +25,11 @@
             <span class="text-lg font-semibold text-purple-800">my favorites</span>
         </div>
     </header>
-    <div class="flex flex-col h-screen">
-        <main class="flex-1 flex items-center justify-center">
-            {% block content %}
+    <main class="flex-1 flex items-center justify-center">
+        {% block content %}
 
-            {% endblock %}
-        </main>
-    </div>
+        {% endblock %}
     </main>
 </body>
-<footer class="pb-10 bg-gray-100 dark:bg-gray-800">
-    <div class="mx-auto max-w-6xl text-center text-sm text-gray-500 space-y-2 dark:text-gray-400">
-    </div>
-</footer>
 
 </html>

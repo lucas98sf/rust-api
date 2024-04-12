@@ -5,6 +5,7 @@ use rocket::fs::relative;
 use rocket::fs::FileServer;
 use rocket::http::Status;
 use rocket::response::{self, Responder};
+use rocket::serde::json::{json, Value};
 use rocket::Request;
 use rocket_dyn_templates::Template;
 use thiserror::Error;
@@ -12,10 +13,58 @@ use thiserror::Error;
 mod clients;
 mod routes;
 
+#[catch(403)]
+pub fn not_authorized() -> Value {
+    json!([{"label": "unauthorized", "message": "Not authorized to make request"}])
+}
+
+#[catch(404)]
+pub fn not_found() -> Value {
+    json!([])
+}
+
+#[catch(422)]
+pub fn unprocessable_entity(req: &Request) -> Value {
+    let validation_errors = req.local_cache::<Option<String>, _>(|| None);
+    let message = match validation_errors {
+        Some(_) => "validation failed",
+        None => "invalid or malformed request",
+    };
+
+    json! [{"label": "failed.request",  "message": message, "validation": validation_errors}]
+}
+
+#[catch(400)]
+pub fn bad_request(req: &Request) -> Value {
+    let validation_errors = req.local_cache::<Option<String>, _>(|| None);
+    let message = match validation_errors {
+        Some(_) => "validation failed",
+        None => "invalid or malformed request",
+    };
+
+    json! [{"label": "bad.request", "message": message, "validation": validation_errors}]
+}
+
+#[catch(500)]
+pub fn internal_server_error(req: &Request) -> Value {
+    let error_message = req.local_cache(|| Some("Internal server error"));
+    json! [{"label": "internal.error", "message": error_message}]
+}
+
 #[launch]
 pub fn rocket() -> _ {
     rocket::build()
         .attach(Template::fairing())
+        .register(
+            "/",
+            catchers![
+                not_authorized,
+                not_found,
+                unprocessable_entity,
+                bad_request,
+                internal_server_error
+            ],
+        )
         .mount("/", routes::routes())
         .mount("/css", FileServer::from(relative!("/templates/css")))
 }
