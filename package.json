@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "dev:css": "tailwindcss -i ./templates/css/input.css -o ./templates/css/output.css --watch",
+    "dev:server": "cargo watch -x run",
+    "dev": "pnpm run --parallel \"/^dev:.*/\""
+  },
   "devDependencies": {
     "tailwindcss": "^3.4.3"
   }
